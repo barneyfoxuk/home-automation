@@ -1,20 +1,19 @@
 var wit = require('node-wit');
 var fs = require('fs');
+
 var output = require('./output');
+var weather = require('./weather');
 
 var ACCESS_TOKEN = '62QCSE6QH35VUYTQYVXANPUYWPDUBWCB';
 
-console.log('Sending text & audio to Wit.AI');
+var intent = {
+  greeting: output.fromWit,
+  weather: weather.fromWit
+};
 
-// wit.captureTextIntent(ACCESS_TOKEN, 'Hello world', function (err, res) {
-//     console.log('Response from Wit for text input: ');
-//     if (err) console.log('Error: ', err);
-//     console.log(JSON.stringify(res, null, ' '));
-// });
+var stream = fs.createReadStream('audio/weather-london-tomorrow.wav');
 
-var stream = fs.createReadStream('demo.wav');
-
-output.say('hmm.. give me a sec to think about that..');
+output.say('Searching..');
 
 wit.captureSpeechIntent(ACCESS_TOKEN, stream, 'audio/wav', function (err, res) {
   console.log('Response from Wit for audio stream: ');
@@ -23,7 +22,13 @@ wit.captureSpeechIntent(ACCESS_TOKEN, stream, 'audio/wav', function (err, res) {
     console.log('Error: ', err);
   } else {
     console.log(JSON.stringify(res, null, ' '));
-    output.say('you just said, ' + res.outcomes[0]._text);
+
+    try {
+      intent[res.outcomes[0].intent](res.outcomes[0]);
+    }
+    catch (err) {
+      output.say('Whoops. Looks like that intent could not be mapped.  Sorry.');
+    }
   }
 
 });
